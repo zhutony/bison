@@ -38,7 +38,14 @@ typedef struct merger_list
 void free_merger_functions (void);
 extern merger_list *merge_functions;
 
-void grammar_start_symbol_set (symbol *sym, location loc);
+/* List of the start symbols.  */
+extern symbol_list *start_symbols;
+
+/* Get a token "YY_FOO" for each start symbol "foo".  Create it if
+   needed. */
+symbol *switching_token (const symbol *start);
+
+void grammar_start_symbols_set (symbol_list *syms);
 
 void grammar_current_rule_begin (symbol *lhs, location loc,
                                  named_ref *lhs_named_ref);

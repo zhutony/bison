@@ -21,7 +21,9 @@
 #include <config.h>
 #include "system.h"
 
+#include <c-ctype.h>
 #include <quote.h>
+#include <vasnprintf.h>
 
 #include "complain.h"
 #include "conflicts.h"
@@ -40,7 +42,7 @@ static void prepare_percent_define_front_end_variables (void);
 static void check_and_convert_grammar (void);
 
 static symbol_list *grammar = NULL;
-static bool start_flag = false;
+symbol_list *start_symbols = NULL;
 merger_list *merge_functions;
 
 /* Was %union seen?  */
@@ -54,16 +56,9 @@ bool default_prec = true;
 `-----------------------*/
 
 void
-grammar_start_symbol_set (symbol *sym, location loc)
+grammar_start_symbols_set (symbol_list *syms)
 {
-  if (start_flag)
-    complain (&loc, complaint, _("multiple %s declarations"), "%start");
-  else
-    {
-      start_flag = true;
-      startsymbol = sym;
-      startsymbol_loc = loc;
-    }
+  start_symbols = symbol_list_append (start_symbols, syms);
 }
 
 
@@ -789,6 +784,80 @@ create_start_rule (symbol *swtok, symbol *start)
   grammar = initial_rule;
 }
 
+/* Get a token "YY_FOO" for each start symbol "foo".  */
+symbol *
+switching_token (const symbol *start)
+{
+  char buf[100];
+  size_t len = sizeof (buf);
+  char *name
+    = asnprintf (buf, &len,
+                 "YY_%s", start->alias ? start->alias->tag : start->tag);
+  if (!name)
+    xalloc_die ();
+  for (char *cp = name; *cp; ++cp)
+    *cp = c_toupper (*cp);
+  symbol *res = symbol_get (name, empty_loc);
+  if (name != buf)
+    free (name);
+  symbol_class_set (res, token_sym, empty_loc, false);
+  return res;
+}
+
+/* For each start symbol "foo", create the rule "$accept: YY_FOO
+   foo $end". */
+static void
+create_start_rules (void)
+{
+  if (!start_symbols)
+    {
+      symbol *start = find_start_symbol ();
+      start_symbols = symbol_list_sym_new (start, start->location);
+    }
+
+  const bool several = start_symbols->next;
+  if (several)
+    for (symbol_list *list = start_symbols; list; list = list->next)
+      {
+        assert (list->content_type == SYMLIST_SYMBOL);
+        symbol *start = list->content.sym;
+        symbol *swtok = switching_token (start);
+        create_start_rule (swtok, start);
+      }
+  else
+    {
+      symbol *start = start_symbols->content.sym;
+      create_start_rule (NULL, start);
+    }
+}
+
+static void
+check_start_symbols (void)
+{
+  // Sanity checks on the start symbols.
+  for (symbol_list *list = start_symbols; list; list = list->next)
+    {
+      const symbol *start = list->content.sym;
+      if (start->content->class == unknown_sym)
+        {
+          complain (&start->location, complaint,
+                    _("the start symbol %s is undefined"),
+                    start->tag);
+          // I claim this situation is unreachable.  This is caught
+          // before, and we get "symbol 'foo' is used, but is not
+          // defined as a token and has no rules".
+          abort ();
+        }
+      if (start->content->class == token_sym)
+        complain (&start->location, complaint,
+                  _("the start symbol %s is a token"),
+                  start->tag);
+    }
+  if (complaint_status == status_complaint)
+    exit (EXIT_FAILURE);
+}
+
+
 /*-------------------------------------------------------------.
 | Check the grammar that has just been read, and convert it to |
 | internal form.                                               |
@@ -816,24 +885,19 @@ check_and_convert_grammar (void)
       }
     }
 
+  /* Insert the initial rule(s).  */
+  create_start_rules ();
+
   /* Report any undefined symbols and consider them nonterminals.  */
   symbols_check_defined ();
-
-  /* Find the start symbol if no %start.  */
-  if (!start_flag)
-    {
-      symbol *start = find_start_symbol ();
-      grammar_start_symbol_set (start, start->location);
-    }
-
-  /* Insert the initial rule.  */
-  create_start_rule (NULL, startsymbol);
 
   aver (nsyms <= SYMBOL_NUMBER_MAXIMUM);
   aver (nsyms == ntokens + nnterms);
 
   /* Assign the symbols their symbol numbers.  */
   symbols_pack ();
+
+  check_start_symbols ();
 
   /* Scan rule actions after invoking symbol_check_alias_consistency
      (in symbols_pack above) so that token types are set correctly
