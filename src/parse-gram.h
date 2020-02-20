@@ -157,8 +157,8 @@ union GRAM_STYPE
   char* PROLOGUE;                          /* "%{...%}"  */
   code_props_type code_props_type;         /* code_props_type  */
   int INT;                                 /* "integer literal"  */
-  int yykind_82;                           /* int.opt  */
-  named_ref* yykind_95;                    /* named_ref.opt  */
+  int yykind_83;                           /* int.opt  */
+  named_ref* yykind_96;                    /* named_ref.opt  */
   param_type PERCENT_PARAM;                /* "%param"  */
   symbol* token_decl;                      /* token_decl  */
   symbol* alias;                           /* alias  */
@@ -171,11 +171,11 @@ union GRAM_STYPE
   symbol_list* generic_symlist_item;       /* generic_symlist_item  */
   symbol_list* nterm_decls;                /* nterm_decls  */
   symbol_list* token_decls;                /* token_decls  */
-  symbol_list* yykind_80;                  /* token_decl.1  */
+  symbol_list* yykind_81;                  /* token_decl.1  */
   symbol_list* token_decls_for_prec;       /* token_decls_for_prec  */
-  symbol_list* yykind_85;                  /* token_decl_for_prec.1  */
+  symbol_list* yykind_86;                  /* token_decl_for_prec.1  */
   symbol_list* symbol_decls;               /* symbol_decls  */
-  symbol_list* yykind_88;                  /* symbol_decl.1  */
+  symbol_list* yykind_89;                  /* symbols.1  */
   uniqstr PERCENT_ERROR_VERBOSE;           /* "%error-verbose"  */
   uniqstr PERCENT_FLAG;                    /* "%<flag>"  */
   uniqstr PERCENT_FILE_PREFIX;             /* "%file-prefix"  */
@@ -185,7 +185,7 @@ union GRAM_STYPE
   uniqstr ID;                              /* "identifier"  */
   uniqstr ID_COLON;                        /* "identifier:"  */
   uniqstr TAG;                             /* "<tag>"  */
-  uniqstr yykind_74;                       /* tag.opt  */
+  uniqstr yykind_75;                       /* tag.opt  */
   uniqstr tag;                             /* tag  */
   uniqstr variable;                        /* variable  */
   unsigned char CHAR;                      /* "character literal"  */
