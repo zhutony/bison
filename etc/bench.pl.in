@@ -44,7 +44,7 @@ I<directives>:
 
 Parentheses only group to override precedence.  For instance:
 
-  [ %debug ] & [ %error-verbose ] & [ %define variant ]
+  [ %debug ] & [ %d parse.error=verbose ] & [ %define variant ]
 
 will generate eight different cases.
 
@@ -173,7 +173,7 @@ my $cxx = $ENV{'CXX'} || 'g++';
 my $cflags = '-O2';
 my @directive = ();
 my $grammar = 'calc';
-my $iterations = -1;
+my $iterations = 100;
 my $verbose = 1;
 
 =head1 FUNCTIONS
@@ -247,7 +247,7 @@ sub generate_grammar_triangular ($$@)
   my $out = new IO::File ">$base.y"
     or die;
   print $out <<EOF;
-%error-verbose
+%define parse.error detailed
 %{
 #include <stdio.h>
 #include <stdlib.h>
@@ -380,20 +380,13 @@ sub generate_grammar_calc ($$@)
 #include <ctype.h>
 #define USE(Var)
 
-/* Exercise pre-prologue dependency to %union.  */
-typedef int semantic_value;
-
-static semantic_value global_result = 0;
+static int global_result = 0;
 static int global_count = 0;
 %}
 
+%define api.value.type union
+%define parse.error detailed
 $directives
-%error-verbose
-/* Exercise %union. */
-%union
-{
-  semantic_value ival;
-};
 
 %{
 static int power (int base, int exponent);
@@ -410,8 +403,8 @@ static int yylex (void);
 
 /* Bison Declarations */
 %token CALC_EOF 0 "end of input"
-%token <ival> NUM "number"
-%type  <ival> exp
+%token <int> NUM "number"
+%type  <int> exp
 
 %nonassoc '=' /* comparison            */
 %left '-' '+'
@@ -515,7 +508,7 @@ yylex (void)
   if (c == '.' || isdigit (c))
     {
       unget_char ( c);
-      yylval.ival = read_signed_integer ();
+      yylval.NUM = read_signed_integer ();
       return NUM;
     }
 
@@ -541,7 +534,7 @@ power (int base, int exponent)
 int
 main (int argc, const char **argv)
 {
-  semantic_value result = 0;
+  int result = 0;
   int count = 0;
   int status;
 
@@ -1041,7 +1034,7 @@ sub parse_dirs ()
   elsif ($token[0] eq '%d')
     {
       shift @token;
-      $token[0] =~ s/(.*?)=(.*)/$1 "$2"/;
+      $token[0] =~ s/(.*?)=(.*)/$1 $2/;
       @res = ("%define $token[0]");
       shift @token;
     }
