@@ -1774,10 +1774,6 @@ yydefault:
 | yyreduce -- do a reduction.  |
 `-----------------------------*/
 yyreduce:
-  {
-    const int yylhs = yyr1[yyn] - YYNTOKENS;]b4_percent_define_ifdef([[nofinal]], [[
-    if (yylhs == 0)
-      YYACCEPT;]])[
   /* yyn is the number of a rule to reduce with.  */
   yylen = yyr2[yyn];
 
@@ -1822,7 +1818,7 @@ yyreduce:
      case of YYERROR or YYBACKUP, subsequent parser actions might lead
      to an incorrect destructor call or verbose syntax error message
      before the lookahead is translated.  */
-  YY_SYMBOL_PRINT ("-> $$ =", yylhs + YYNTOKENS, &yyval, &yyloc);
+  YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
 
   YYPOPSTACK (yylen);
   yylen = 0;
@@ -1834,11 +1830,13 @@ yyreduce:
      that goes to, based on the state we popped back to and the rule
      number reduced by.  */
   {
+    const int yylhs = yyr1[yyn] - YYNTOKENS;]b4_percent_define_ifdef([[nofinal]], [[
+    if (yylhs == 0)
+      YYACCEPT;]])[
     const int yyi = yypgoto[yylhs] + *yyssp;
     yystate = (0 <= yyi && yyi <= YYLAST && yycheck[yyi] == *yyssp
                ? yytable[yyi]
                : yydefgoto[yylhs]);
-  }
   }
   goto yynewstate;
 
