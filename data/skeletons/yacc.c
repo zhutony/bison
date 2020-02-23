@@ -22,6 +22,8 @@ m4_pushdef([b4_copyright_years],
 
 m4_include(b4_skeletonsdir/[c.m4])
 
+#b4_percent_define_default([[nofinal]], [[true]])
+
 ## ---------- ##
 ## api.pure.  ##
 ## ---------- ##
@@ -1662,8 +1664,9 @@ yysetstate:
     }
 #endif /* !defined yyoverflow && !defined YYSTACK_RELOCATE */
 
+]b4_percent_define_ifdef([[nofinal]], [], [[
   if (yystate == YYFINAL)
-    YYACCEPT;
+    YYACCEPT;]])[
 
   goto yybackup;
 
@@ -1732,9 +1735,11 @@ yyread_pushed_token:]])[
   if (yyn <= 0)
     {
       if (yytable_value_is_error (yyn))
-        goto yyerrlab;]b4_lac_if([[
+        goto yyerrlab;
+      yyn = -yyn;]b4_percent_define_ifdef([[nofinal]], [[
+      if (yyr1[yyn] == YYNTOKENS)
+        YYACCEPT;]])[]b4_lac_if([[
       YY_LAC_ESTABLISH;]])[
-      yyn = -yyn;
       goto yyreduce;
     }
 
@@ -1763,7 +1768,9 @@ yyread_pushed_token:]])[
 yydefault:
   yyn = yydefact[yystate];
   if (yyn == 0)
-    goto yyerrlab;
+    goto yyerrlab;]b4_percent_define_ifdef([[nofinal]], [[
+  else if (yyr1[yyn] == YYNTOKENS)
+    YYACCEPT;]])[
   goto yyreduce;
 
 
