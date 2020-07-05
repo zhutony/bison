@@ -267,6 +267,8 @@ static void
 grammar_rule_check_and_complete (symbol_list *r)
 {
   const symbol *lhs = r->content.sym;
+  const symbol *first_rhs = r->next->content.sym;
+
   /* Type check.
 
      If there is an action, then there is nothing we can do: the user
@@ -276,7 +278,6 @@ grammar_rule_check_and_complete (symbol_list *r)
      value can't be used.  */
   if (!r->action_props.code && lhs->content->type_name)
     {
-      symbol *first_rhs = r->next->content.sym;
       /* If $$ is being set in default way, report if any type mismatch.  */
       if (first_rhs)
         {
@@ -315,7 +316,23 @@ grammar_rule_check_and_complete (symbol_list *r)
      Don't check the generated start rules.  It has no action, so some
      rhs symbols may appear unused, but the parsing algorithm ensures
      that %destructor's are invoked appropriately.  */
-  if (lhs != accept)
+  if (lhs == accept)
+    {
+      const bool multistart = start_symbols && start_symbols->next;
+      if (multistart)
+        {
+          const symbol *start = r->next->next->content.sym;
+          code_props_rule_action_init
+            (&r->action_props,
+             start->content->type_name ? "{ ${2} = $2; YYACCEPT; }" : "{ YYACCEPT; }",
+             r->rhs_loc, r,
+             /* name */ NULL,
+             /* type */ NULL,
+             /* is_predicate */ false);
+          code_props_translate_code (&r->action_props);
+        }
+    }
+  else
     {
       int n = 0;
       for (symbol_list const *l = r; l && l->content.sym; l = l->next, ++n)

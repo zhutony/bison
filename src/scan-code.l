@@ -52,6 +52,8 @@ static char *fetch_type_name (char *cp, char const **type_name,
 
 static void handle_action_dollar (symbol_list *rule, char *cp,
                                   const location *dollar_loc);
+static void handle_action_dollar_brace (symbol_list *rule, char *cp,
+                                        const location *dollar_loc);
 static void handle_action_at (symbol_list *rule, char *cp,
                               const location *at_loc);
 
@@ -167,6 +169,11 @@ ref      -?[0-9]+|{id}|"["{id}"]"|"$"
     handle_action_dollar (self->rule, yytext, loc);
     if (ref_tail_fields)
       obstack_sgrow (&obstack_for_string, ref_tail_fields);
+  }
+  /* "${2}", which becomes "b4_symbol(yyvalue->TOK_line) is symbol kind 2
+     denotes "line". */
+  "${"[0-9]+"}"  {
+    handle_action_dollar_brace (self->rule, yytext, loc);
   }
   "@"{ref} {
     ref_tail_fields = NULL;
@@ -700,6 +707,24 @@ handle_action_dollar (symbol_list *rule, char *text, const location *dollar_loc)
       }
       break;
     }
+}
+
+
+/*--------------------------------------------------------------.
+| TEXT is pointing to a semantic value variable (i.e., a '$').  |
+|                                                               |
+| Possible inputs: ${NUMBER}                                    |
+`--------------------------------------------------------------*/
+
+static void
+handle_action_dollar_brace (symbol_list *rule, char *text, const location *dollar_loc)
+{
+  const int rule_length =  symbol_list_length (rule->next);
+  long pos = parse_positional_ref (text + 2, rule_length, text, dollar_loc);
+  symbol_list *sym = symbol_list_n_get (rule, pos);
+  obstack_printf (&obstack_for_string,
+                  "]b4_yyvalue([orig %d])[",
+                  sym->content.sym->content->number);
 }
 
 

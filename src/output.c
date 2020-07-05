@@ -461,7 +461,8 @@ type_names_output (FILE *out)
 }
 
 
-/* Define the list of start symbols *if* there are several. */
+/* Define the list of start symbols as [START-SYM-NUMBER,
+   SWITCHING-TOKEN-NUMBER] *if* there are several. */
 static void
 start_symbols_output (FILE *out)
 {

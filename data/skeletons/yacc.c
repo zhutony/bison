@@ -116,6 +116,12 @@ m4_ifset([b4_parse_param], [b4_args(b4_parse_param), ])])
 ## ----------------- ##
 
 
+# b4_yyvalue(SYMBOL-NUM)
+# ----------------------
+m4_define([b4_yyvalue],
+[b4_symbol_value((*yyvalue), [$1])])
+
+
 # b4_lhs_value(SYMBOL-NUM, [TYPE])
 # --------------------------------
 # See README.
@@ -158,18 +164,32 @@ m4_define([b4_rhs_location],
 # _b4_declare_sub_yyparse(SYMBOL-NUM)
 # -----------------------------------
 m4_define([_b4_declare_sub_yyparse],
-[[int ]b4_prefix[parse_]_b4_symbol($1, id)[ (]m4_ifset([b4_parse_param], [b4_formals(b4_parse_param)], [void])[);]])
+[[
+// Parse a ]_b4_symbol($1, tag)[.
+typedef struct
+{]b4_symbol_if([$1], [has_type], [[
+  ]_b4_symbol($1, type)[ yyvalue;]])[
+  int yystatus;
+} ]b4_prefix[parse_]_b4_symbol($1, id)[_t;
+]b4_prefix[parse_]_b4_symbol($1, id)[_t ]b4_prefix[parse_]_b4_symbol($1, id)[ (]m4_ifset([b4_parse_param], [b4_formals(b4_parse_param)], [void])[);
+]])
 
 
 # _b4_define_sub_yyparse(SYMBOL-NUM)
 # ----------------------------------
 m4_define([_b4_define_sub_yyparse],
-[[int
+[[
+]b4_prefix[parse_]_b4_symbol($1, id)[_t
 yyparse_]_b4_symbol($1, id)[ (]m4_ifset([b4_parse_param], [b4_formals(b4_parse_param)], [void])[)
 {
-  return yyparse_impl (]b4_symbol($2, id)[]m4_ifset([b4_parse_param],
-                                                    [[, ]b4_args(b4_parse_param)])[);
-}]])
+  ]b4_prefix[parse_]_b4_symbol($1, id)[_t yyres;
+  YYSTYPE yyvalue;
+  yyres.yystatus = yyparse_impl (]b4_symbol($2, id)[, &yyvalue]m4_ifset([b4_parse_param],
+                           [[, ]b4_args(b4_parse_param)])[);]b4_symbol_if([$1], [has_type], [[
+  yyres.yyvalue = yyvalue.]b4_symbol($1, slot)[;]])[
+  return yyres;
+}
+]])
 
 
 # b4_declare_scanner_communication_variables
@@ -179,8 +199,8 @@ yyparse_]_b4_symbol($1, id)[ (]m4_ifset([b4_parse_param], [b4_formals(b4_parse_p
 m4_define([b4_declare_scanner_communication_variables], [[
 ]m4_ifdef([b4_start_symbols], [],
 [[/* Lookahead token kind.  */
-int yychar;]])[
-
+int yychar;
+]])[
 ]b4_pure_if([[
 /* The semantic value of the lookahead symbol.  */
 /* Default value used for initialization, for pacifying older GCCs
@@ -1560,7 +1580,7 @@ yypush_parse (yypstate *yyps]b4_pure_if([[,
 ]m4_ifdef([b4_start_symbols],
 [[
 static int
-yyparse_impl (int yychar]m4_ifset([b4_parse_param], [, b4_formals(b4_parse_param)])[);
+yyparse_impl (int yychar, YYSTYPE *yyvalue]m4_ifset([b4_parse_param], [, b4_formals(b4_parse_param)])[);
 
 ]m4_map([_b4_define_sub_yyparse], m4_defn([b4_start_symbols]))[
 
@@ -1568,12 +1588,12 @@ int
 yyparse (]m4_ifset([b4_parse_param], [b4_formals(b4_parse_param)], [void])[)
 {
   /* ]b4_symbol(-2, id)[ causes a token to be read.  */
-  return yyparse_impl (]b4_symbol(-2, id)[]m4_ifset([b4_parse_param],
+  return yyparse_impl (]b4_symbol(-2, id)[, YY_NULLPTR]m4_ifset([b4_parse_param],
                                                     [[, ]b4_args(b4_parse_param)])[);
 }
 
 static int
-yyparse_impl (int yychar]m4_ifset([b4_parse_param], [, b4_formals(b4_parse_param)])[)]],
+yyparse_impl (int yychar, YYSTYPE *yyvalue]m4_ifset([b4_parse_param], [, b4_formals(b4_parse_param)])[)]],
 [[int
 yyparse (]m4_ifset([b4_parse_param], [b4_formals(b4_parse_param)], [void])[)]])])[
 {]b4_pure_if([b4_declare_scanner_communication_variables
@@ -1812,9 +1832,7 @@ yyread_pushed_token:]])[
     {
       if (yytable_value_is_error (yyn))
         goto yyerrlab;
-      yyn = -yyn;]m4_ifdef([b4_start_symbols], [[
-      if (yyr1[yyn] == YYNTOKENS)
-        YYACCEPT;]])[]b4_lac_if([[
+      yyn = -yyn;]b4_lac_if([[
       YY_LAC_ESTABLISH;]])[
       goto yyreduce;
     }
@@ -1844,9 +1862,7 @@ yyread_pushed_token:]])[
 yydefault:
   yyn = yydefact[yystate];
   if (yyn == 0)
-    goto yyerrlab;]m4_ifdef([b4_start_symbols], [[
-  else if (yyr1[yyn] == YYNTOKENS)
-    YYACCEPT;]])[
+    goto yyerrlab;
   goto yyreduce;
 
 
