@@ -322,14 +322,20 @@ grammar_rule_check_and_complete (symbol_list *r)
       if (multistart)
         {
           const symbol *start = r->next->next->content.sym;
+          if (start->content->type_name)
+            obstack_printf (obstack_for_actions,
+                            "{ ]b4_accept([orig %d])[; }",
+                            start->content->number);
+          else
+            obstack_printf (obstack_for_actions,
+                            "{ ]b4_accept[; }");
           code_props_rule_action_init
             (&r->action_props,
-             start->content->type_name ? "{ ${2} = $2; YYACCEPT; }" : "{ YYACCEPT; }",
+             obstack_finish0 (obstack_for_actions),
              r->rhs_loc, r,
              /* name */ NULL,
              /* type */ NULL,
              /* is_predicate */ false);
-          code_props_translate_code (&r->action_props);
         }
     }
   else
@@ -787,6 +793,11 @@ create_start_rule (symbol *swtok, symbol *start)
   symbol_list *p = initial_rule;
   if (swtok)
     {
+      // Cannot create the action now, as the symbols have not yet
+      // been assigned their number (by symbol_pack), which we need to
+      // know the type name.  So the action is created in
+      // grammar_rule_check_and_complete, which is run after
+      // symbol_pack.
       p->next = symbol_list_sym_new (swtok, empty_loc);
       p = p->next;
     }

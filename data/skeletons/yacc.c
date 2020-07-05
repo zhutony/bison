@@ -116,10 +116,11 @@ m4_ifset([b4_parse_param], [b4_args(b4_parse_param), ])])
 ## ----------------- ##
 
 
-# b4_yyvalue(SYMBOL-NUM)
-# ----------------------
-m4_define([b4_yyvalue],
-[b4_symbol_value((*yyvalue), [$1])])
+# b4_accept([SYMBOL-NUM])
+# -----------------------
+m4_define([b4_accept],
+[m4_ifval([$1],
+          [b4_symbol_value((*yyvalue), [$1]) = b4_rhs_value(2, 1, [$1]); ])YYACCEPT])
 
 
 # b4_lhs_value(SYMBOL-NUM, [TYPE])
